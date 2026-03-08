@@ -95,11 +95,28 @@ function Library:CreateWindow(title, subtitle, tag)
     subtitle = subtitle or ""; tag = tag or ""
 
     local gui = new("ScreenGui",{Name="UILib",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true})
-    pcall(function() if syn and syn.protect_gui then syn.protect_gui(gui) end end)
-    if not pcall(function() if gethui then gui.Parent=gethui() end end) then
-        gui.Parent = game:GetService("CoreGui")
+    -- Protect and parent the gui safely across all executors
+    pcall(function()
+        if syn and syn.protect_gui then
+            syn.protect_gui(gui)
+        end
+    end)
+    local parented = false
+    pcall(function()
+        if gethui then
+            gui.Parent = gethui()
+            parented = true
+        end
+    end)
+    if not parented then
+        pcall(function()
+            gui.Parent = game:GetService("CoreGui")
+            parented = true
+        end)
     end
-    if not gui.Parent then gui.Parent = game:GetService("CoreGui") end
+    if not parented then
+        gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    end
 
     -- ── Main frame 660×430 ──
     local main = new("Frame",{
@@ -460,7 +477,7 @@ function Library:CreateWindow(title, subtitle, tag)
                 local dLayout=new("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Parent=dList})
 
                 local function closeDrop()
-                    opt.open=false; tw(dList,{Size=UDim2.new(0,142,0,0)},0.12); task.delay(0.13,function() dList.Visible=false end); tw(chev,{Rotation=0})
+                    opt.open=false; tw(dList,{Size=UDim2.new(0,142,0,0)},0.12); delay(0.13, function() dList.Visible=false end); tw(chev,{Rotation=0})
                 end
                 local function openDrop()
                     for _,c in ipairs(dList:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
@@ -496,7 +513,7 @@ function Library:CreateWindow(title, subtitle, tag)
                 row.InputBegan:Connect(function(i)
                     if i.UserInputType==Enum.UserInputType.MouseButton1 then
                         tw(row,{BackgroundColor3=Color3.fromRGB(42,18,18)})
-                        task.delay(0.18,function() tw(row,{BackgroundColor3=ROW}) end)
+                        delay(0.18, function() tw(row,{BackgroundColor3=ROW}) end)
                         opt.callback()
                     end
                 end)
@@ -647,7 +664,7 @@ function Library:CreateWindow(title, subtitle, tag)
                     local row=mkInner(38)
                     new("TextLabel",{Position=UDim2.new(0,0,0,0),Size=UDim2.new(1,-30,1,0),BackgroundTransparency=1,Text=opt.text,TextSize=14,Font=Enum.Font.GothamSemibold,TextColor3=WHITE,TextXAlignment=Enum.TextXAlignment.Center,ZIndex=3,Parent=row})
                     new("TextLabel",{Size=UDim2.new(0,26,1,0),Position=UDim2.new(1,-30,0,0),BackgroundTransparency=1,Text="›",TextSize=18,Font=Enum.Font.GothamBold,TextColor3=SUBTEXT,ZIndex=3,Parent=row})
-                    row.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then tw(row,{BackgroundColor3=Color3.fromRGB(42,18,18)}); task.delay(0.18,function() tw(row,{BackgroundColor3=INNER_BG}) end); opt.callback() end end)
+                    row.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then tw(row,{BackgroundColor3=Color3.fromRGB(42,18,18)}); delay(0.18, function() tw(row,{BackgroundColor3=INNER_BG}) end); opt.callback() end end)
                     table.insert(csec.items,opt); return opt
                 end
 
@@ -685,7 +702,7 @@ function Library:CreateWindow(title, subtitle, tag)
                     local vl=new("TextLabel",{Position=UDim2.new(0,8,0,0),Size=UDim2.new(1,-26,1,0),BackgroundTransparency=1,Text=opt.value,TextSize=12,Font=Enum.Font.Gotham,TextColor3=SUBTEXT,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=7,Parent=chip})
                     local ch=new("TextLabel",{Size=UDim2.new(0,20,1,0),Position=UDim2.new(1,-22,0,0),BackgroundTransparency=1,Text="▾",TextSize=13,Font=Enum.Font.GothamBold,TextColor3=SUBTEXT,ZIndex=7,Parent=chip})
                     local dl=new("Frame",{Position=UDim2.new(1,-152,1,2),Size=UDim2.new(0,142,0,0),BackgroundColor3=DROP_BG,BorderSizePixel=0,ClipsDescendants=true,ZIndex=20,Visible=false,Parent=row}); corner(4,dl); new("UIStroke",{Color=Color3.fromRGB(32,42,62),Thickness=1,Parent=dl}); new("UIListLayout",{SortOrder=Enum.SortOrder.LayoutOrder,Parent=dl})
-                    local function cd() opt.open=false; tw(dl,{Size=UDim2.new(0,142,0,0)},0.12); task.delay(0.13,function() dl.Visible=false end); tw(ch,{Rotation=0}) end
+                    local function cd() opt.open=false; tw(dl,{Size=UDim2.new(0,142,0,0)},0.12); delay(0.13, function() dl.Visible=false end); tw(ch,{Rotation=0}) end
                     local function od()
                         for _,c in ipairs(dl:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
                         for i,v in ipairs(opt.values) do local it=new("TextButton",{LayoutOrder=i,Size=UDim2.new(1,0,0,28),BackgroundColor3=DROP_BG,BorderSizePixel=0,Text="   "..tostring(v),TextSize=12,Font=Enum.Font.Gotham,TextColor3=WHITE,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=21,Parent=dl}); it.MouseEnter:Connect(function() tw(it,{BackgroundColor3=ROW_HOV}) end); it.MouseLeave:Connect(function() tw(it,{BackgroundColor3=DROP_BG}) end); it.MouseButton1Click:Connect(function() opt.value=tostring(v); Library.flags[opt.flag]=opt.value; vl.Text=opt.value; opt.callback(opt.value); cd() end) end
